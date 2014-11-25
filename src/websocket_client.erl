@@ -428,7 +428,10 @@ disconnected(connect, Context0) ->
             {next_state, handshaking, Context1};
         {error, _Error} ->
             {next_state, disconnected, Context0}
-    end.
+    end;
+disconnected(_Event, Context) ->
+    % ignore
+    {next_state, disconnected, Context}.
 
 disconnected(connect, _From, Context0) ->
     case connect(Context0) of
@@ -437,11 +440,16 @@ disconnected(connect, _From, Context0) ->
         {error,_}=Error ->
             {reply, Error, disconnected, Context0}
     end;
-disconnected(_Event, _From, Context) -> {stop, unhandled_sync_event, Context}.
+disconnected(_Event, _From, Context) ->
+    {reply, {error, unhandled_sync_event}, disconnected, Context}.
 
 connected({cast, Frame}, #context{wsreq=WSReq}=Context) ->
-    ok = encode_and_send(Frame, WSReq),
-    {next_state, connected, Context}.
+    case encode_and_send(Frame, WSReq) of
+        ok ->
+            {next_state, connected, Context};
+        {error, closed} ->
+            {next_state, disconnected, Context}
+    end.
 
 connected({send, Frame}, _From, #context{wsreq=WSReq}=Context) ->
     {reply, encode_and_send(Frame, WSReq), connected, Context};
