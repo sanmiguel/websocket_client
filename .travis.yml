@@ -3,4 +3,6 @@ otp_release:
   - R16B03
   - R16B02
   - R16B01
+  - 17.5
+  - 18.0
 script: make test
