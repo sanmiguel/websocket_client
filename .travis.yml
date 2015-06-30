@@ -1,12 +1,6 @@
+before_script:
+- travis_retry sudo apt-get update
+- travis_retry wget http://packages.erlang-solutions.com/site/esl/esl-erlang/FLAVOUR_1_esl/esl-erlang_18.0-1~ubuntu~precise_amd64.deb
+- travis_retry sudo dpkg -i esl-erlang_18.0-1~ubuntu~precise_amd64.deb
 language: erlang
-otp_release:
-  - R16B03
-  - R16B02
-  - R16B01
-  - 17.0
-  - 17.1
-  - 17.3
-  - 17.4
-  - 17.5
-  - 18.0
 script: make test
