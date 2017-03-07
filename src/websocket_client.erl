@@ -280,6 +280,10 @@ disconnect(Reason, #context{
         {reconnect, HState1} ->
             ok = gen_fsm:send_event(self(), connect),
             {next_state, disconnected, Context#context{handler={Handler, HState1}}};
+        {reconnect, ReconnectIn, HState1} ->
+            timer:sleep(ReconnectIn),
+            ok = gen_fsm:send_event(self(), connect),
+            {next_state, disconnected, Context#context{handler={Handler, HState1}}};
         {close, Reason1, HState1} ->
             ok = websocket_close(WSReq0, Handler, HState1, Reason1),
             {stop, Reason1, Context#context{handler={Handler, HState1}}}
