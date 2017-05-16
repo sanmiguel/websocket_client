@@ -224,4 +224,4 @@ set_continuation_if_empty(WSReq, Opcode) ->
 %% @doc Key sent in initial handshake
 -spec generate_ws_key() -> binary().
 generate_ws_key() ->
-    base64:encode(crypto:rand_bytes(16)).
+    base64:encode(crypto:strong_rand_bytes(16)).
