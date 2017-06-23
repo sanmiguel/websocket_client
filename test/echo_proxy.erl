@@ -5,8 +5,6 @@
 %% port 8081. Upon receipt of connection, it makes an outbound connection
 %% to port 8080 and forwards all traffic back and forth.
 %%
-%% TODO: Sniff traffic
-%% TODO: Decode/Decrypt traffic and print
 %% TODO: Filter according to ~rules
 %%
 
