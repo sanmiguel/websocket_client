@@ -11,6 +11,9 @@
 -export([start_link/3]).
 -export([start_link/4]).
 -export([start_link/5]).
+-export([start/3]).
+-export([start/4]).
+-export([start/5]).
 -export([cast/2]).
 -export([send/2]).
 
