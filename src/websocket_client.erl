@@ -103,7 +103,8 @@
          handler   :: {module(), HState :: term()},
          buffer = <<>> :: binary(),
          reconnect :: boolean(),
-         ka_attempts = 0 :: non_neg_integer()
+         ka_attempts = 0 :: non_neg_integer(),
+	 reason :: {term(), term()}
         }).
 
 %% @doc Start the websocket client
@@ -324,10 +325,10 @@ disconnect(Reason, #context{
                      }=Context) ->
     case Handler:ondisconnect(Reason, HState0) of
         {ok, HState1} ->
-            {next_state, disconnected, Context#context{buffer = <<>>, handler={Handler, HState1}}};
+            {next_state, disconnected, Context#context{buffer = <<>>, handler={Handler, HState1}, reason=Reason}};
         {reconnect, HState1} ->
             ok = gen_fsm:send_event(self(), connect),
-            {next_state, disconnected, Context#context{handler={Handler, HState1}}};
+            {next_state, disconnected, Context#context{handler={Handler, HState1}, reason=Reason}};
         {close, Reason1, HState1} ->
             ok = websocket_close(WSReq0, Handler, HState1, Reason1),
             {stop, Reason1, Context#context{handler={Handler, HState1}}}
@@ -406,9 +407,10 @@ handle_info(keepalive, KAState, #context{ wsreq=WSReq, ka_attempts=KAAttempts }=
 %% match on it here
 handle_info({TransClosed, _Socket}, _CurrState,
             #context{
+	       reason=Reason,
                transport=#transport{ closed=TransClosed } %% NB: matched
               }=Context) ->
-    disconnect({remote, closed}, Context);
+    disconnect(Reason, Context);
 handle_info({TransError, _Socket, Reason},
             _AnyState,
             #context{
@@ -545,8 +547,9 @@ handle_websocket_frame(Data, #context{}=Context0) ->
                                       handler={Handler, HState0},
                                       wsreq=WSReqN,
                                       buffer=BufferN}};
-        {close, _Reason, WSReqN} ->
+        {close, Reason, WSReqN} ->
             {next_state, disconnected, Context#context{wsreq=WSReqN,
+						       reason=Reason,
                                                        buffer= <<>>}}
     end.
 
