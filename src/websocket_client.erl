@@ -193,7 +193,7 @@ fsm_start_link(FsmName, Args, Options) ->
     gen_fsm:start_link(FsmName, ?MODULE, Args, Options).
 
 fsm_start(undefined, Args, Options) ->
-    gen_fsm:start_link(?MODULE, Args, Options);
+    gen_fsm:start(?MODULE, Args, Options);
 fsm_start(FsmName, Args, Options) ->
     gen_fsm:start(FsmName, ?MODULE, Args, Options).
 
