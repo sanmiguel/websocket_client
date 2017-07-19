@@ -138,7 +138,7 @@ test_keepalive_opt(_) ->
     ok.
 
 test_keepalive_timeout(_) ->
-    {ok, S} = gen_tcp:listen(9090, [binary, {packet, 0}, {active, true}]),
+    {ok, _} = gen_tcp:listen(9090, [binary, {packet, 0}, {active, true}]),
     process_flag(trap_exit, true),
     {ok, C} = ws_client:start_link("ws://localhost:9090", 500),
     receive
