@@ -18,14 +18,16 @@
 -record(state, {}).
 
 start() ->
-    ct:pal("Starting ~p.~n", [?MODULE]),
+    Port = 8080,
+    {ok, _} = application:ensure_all_started(cowboy),
+    error_logger:info_msg("Starting ~p on port ~b.~n", [?MODULE, Port]),
     Dispatch = cowboy_router:compile([{'_', [
                                              {"/hello", ?MODULE, []},
                                              {'_', ?MODULE, []}
                                             ]}]),
     {ok, _} = cowboy:start_http(echo_listener, 2, [
                                                    {nodelay, true},
-                                                   {port, 8080},
+                                                   {port, Port},
                                                    {max_connections, 100}
                                                   ],
                                 [{env, [{dispatch, Dispatch}]}]).
@@ -48,27 +50,27 @@ websocket_init(_Transport, Req, _Opts) ->
             end;
         {Code, Req2} ->
             IntegerCode = list_to_integer(binary_to_list(Code)),
-            ct:pal("~p shuting down on init using '~p' status code~n", [?MODULE, IntegerCode]),
+            error_logger:info_msg("~p shuting down on init using '~p' status code~n", [?MODULE, IntegerCode]),
             {ok, Req3} = cowboy_req:reply(IntegerCode, Req2),
             {shutdown, Req3}
     end.
 
 websocket_handle({ping, Payload}=_Frame, Req, State) ->
-    ct:pal("~p pingpong with size ~p~n", [?MODULE, byte_size(Payload)]),
+    error_logger:info_msg("~p pingpong with size ~p~n", [?MODULE, byte_size(Payload)]),
     {ok, Req, State};
 websocket_handle({Type, Payload}=Frame, Req, State) ->
-    ct:pal("~p replying with ~p of size ~p~n", [?MODULE, Type, byte_size(Payload)]),
+    error_logger:info_msg("~p replying with ~p of size ~p~n", [?MODULE, Type, byte_size(Payload)]),
     {reply, Frame, Req, State}.
 
 websocket_info({send, Text}, Req, State) ->
     timer:sleep(1),
-    ct:pal("~p sent frame of size ~p ~n", [?MODULE, byte_size(Text)]),
+    error_logger:info_msg("~p sent frame of size ~p ~n", [?MODULE, byte_size(Text)]),
     {reply, {text, Text}, Req, State};
 
 websocket_info(_Msg, Req, State) ->
-    ct:pal("~p received OoB msg: ~p~n", [?MODULE, _Msg]),
+    error_logger:info_msg("~p received OoB msg: ~p~n", [?MODULE, _Msg]),
     {ok, Req, State}.
 
 websocket_terminate(Reason, _Req, _State) ->
-    ct:pal("~p terminating with reason ~p~n", [?MODULE, Reason]),
+    error_logger:info_msg("~p terminating with reason ~p~n", [?MODULE, Reason]),
     ok.
