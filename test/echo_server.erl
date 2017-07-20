@@ -4,7 +4,8 @@
 
 -export([
          start/0,
-         stop/0
+         stop/0,
+         url/0
         ]).
 
 -export([
@@ -17,6 +18,8 @@
 
 -record(state, {}).
 
+-define(PORT, 8080).
+
 start() ->
     ct:pal("Starting ~p.~n", [?MODULE]),
     Dispatch = cowboy_router:compile([{'_', [
@@ -25,13 +28,16 @@ start() ->
                                             ]}]),
     {ok, _} = cowboy:start_http(echo_listener, 2, [
                                                    {nodelay, true},
-                                                   {port, 8080},
+                                                   {port, ?PORT},
                                                    {max_connections, 100}
                                                   ],
                                 [{env, [{dispatch, Dispatch}]}]).
 
 stop() ->
     cowboy:stop_listener(echo_listener).
+
+url() ->
+    "ws://localhost:"++integer_to_list(?PORT).
 
 init(_, _Req, _Opts) ->
     {upgrade, protocol, cowboy_websocket}.
