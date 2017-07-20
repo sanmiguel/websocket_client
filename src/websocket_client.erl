@@ -11,6 +11,9 @@
 -export([start_link/3]).
 -export([start_link/4]).
 -export([start_link/5]).
+-export([start/3]).
+-export([start/4]).
+-export([start/5]).
 -export([cast/2]).
 -export([send/2]).
 
@@ -100,7 +103,8 @@
          handler   :: {module(), HState :: term()},
          buffer = <<>> :: binary(),
          reconnect :: boolean(),
-         ka_attempts = 0 :: non_neg_integer()
+         ka_attempts = 0 :: non_neg_integer(),
+	 reason :: {term(), term()}
         }).
 
 %% @doc Start the websocket client
@@ -143,10 +147,55 @@ start_link(FsmName, URL, Handler, HandlerArgs, Opts) when is_list(Opts) ->
             Error
     end.
 
+%% @doc Start the websocket client
+%%
+%% URL : Supported schema: (ws | wss)
+%% Handler: module()
+%% Args : arguments to pass to Handler:init/1
+-spec start(URL :: string(), Handler :: module(), Args :: list()) ->
+    {ok, pid()} | {error, term()}.
+start(URL, Handler, Args) ->
+    start(URL, Handler, Args, []).
+
+%% @doc Start the websocket client
+%%
+%% Supported Opts:
+%%  - {keepalive, integer()}:  keepalive timeout in ms
+%%  - {extra_headers, list({K, V})}: a kv-list of headers to send in the handshake
+%% (useful if you need to add an e.g. 'Origin' header on connection.
+%%  - {ssl_verify, verify_none | verify_peer | {verify_fun, _}} : this is passed
+%%  through to ssl:connect/2,3.
+start(URL, Handler, HandlerArgs, Opts) ->
+    start(undefined, URL, Handler, HandlerArgs, Opts).
+
+%% @doc Start the websocket client
+%% see gen_fsm:start(FsmName, Module, Args, Options)
+%% FsmName = {local,Name} | {global,GlobalName} | {via,Module,ViaName}
+%%  Name = atom()
+%%  GlobalName = ViaName = term()
+%%  Module = atom()
+start(FsmName, URL, Handler, HandlerArgs, Opts) when is_binary(URL) ->
+  start(FsmName, binary_to_list(URL), Handler, HandlerArgs, Opts);
+start(FsmName, URL, Handler, HandlerArgs, Opts) when is_list(Opts) ->
+    case http_uri:parse(URL, [{scheme_defaults, [{ws,80},{wss,443}]}]) of
+        {ok, {Protocol, _, Host, Port, Path, Query}} ->
+            InitArgs = [Protocol, Host, Port, Path ++ Query, Handler, HandlerArgs, Opts],
+            %FsmOpts = [{dbg, [trace]}],
+            FsmOpts = [],
+            fsm_start(FsmName, InitArgs, FsmOpts);
+        {error, _} = Error ->
+            Error
+    end.
+
 fsm_start_link(undefined, Args, Options) ->
     gen_fsm:start_link(?MODULE, Args, Options);
 fsm_start_link(FsmName, Args, Options) ->
     gen_fsm:start_link(FsmName, ?MODULE, Args, Options).
+
+fsm_start(undefined, Args, Options) ->
+    gen_fsm:start(?MODULE, Args, Options);
+fsm_start(FsmName, Args, Options) ->
+    gen_fsm:start(FsmName, ?MODULE, Args, Options).
 
 send(Client, Frame) ->
     gen_fsm:sync_send_event(Client, {send, Frame}).
@@ -273,10 +322,10 @@ disconnect(Reason, #context{
                      }=Context) ->
     case Handler:ondisconnect(Reason, HState0) of
         {ok, HState1} ->
-            {next_state, disconnected, Context#context{buffer = <<>>, handler={Handler, HState1}}};
+            {next_state, disconnected, Context#context{buffer = <<>>, handler={Handler, HState1}, reason=Reason}};
         {reconnect, HState1} ->
             ok = gen_fsm:send_event(self(), connect),
-            {next_state, disconnected, Context#context{handler={Handler, HState1}}};
+            {next_state, disconnected, Context#context{handler={Handler, HState1}, reason=Reason}};
         {close, Reason1, HState1} ->
             ok = websocket_close(WSReq0, Handler, HState1, Reason1),
             {stop, Reason1, Context#context{handler={Handler, HState1}}}
@@ -355,9 +404,10 @@ handle_info(keepalive, KAState, #context{ wsreq=WSReq, ka_attempts=KAAttempts }=
 %% match on it here
 handle_info({TransClosed, _Socket}, _CurrState,
             #context{
+	       reason=Reason,
                transport=#transport{ closed=TransClosed } %% NB: matched
               }=Context) ->
-    disconnect({remote, closed}, Context);
+    disconnect(Reason, Context);
 handle_info({TransError, _Socket, Reason},
             _AnyState,
             #context{
@@ -494,8 +544,9 @@ handle_websocket_frame(Data, #context{}=Context0) ->
                                       handler={Handler, HState0},
                                       wsreq=WSReqN,
                                       buffer=BufferN}};
-        {close, _Reason, WSReqN} ->
+        {close, Reason, WSReqN} ->
             {next_state, disconnected, Context#context{wsreq=WSReqN,
+						       reason=Reason,
                                                        buffer= <<>>}}
     end.
 
