@@ -484,7 +484,7 @@ handle_websocket_frame(Data, #context{}=Context0) ->
     Result =
         case websocket_req:remaining(WSReq) of
             undefined ->
-                wsc_lib:decode_frame(WSReq, << Buffer/binary, Data/binary >>); %% TODO ??
+                wsc_lib:decode_header(WSReq, << Buffer/binary, Data/binary >>); %% TODO ??
             Remaining ->
                 wsc_lib:decode_frame(WSReq, websocket_req:opcode(WSReq), Remaining, Data, Buffer)
         end,

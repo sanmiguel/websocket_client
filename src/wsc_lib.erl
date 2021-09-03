@@ -4,7 +4,6 @@
 %% Purely functional aspects of websocket client comms.
 %%
 %% Herein live all the functions for pure data processing.
--compile([export_all]).
 -include("websocket_req.hrl").
 
 -export([create_auth_header/3]).
@@ -13,7 +12,7 @@
 -export([generate_ws_key/0]).
 
 -export([validate_handshake/2]).
--export([decode_frame/2]).
+-export([decode_header/2]).
 -export([decode_frame/5]).
 
 -spec create_auth_header(Type :: basic, User :: binary(), Pass :: binary()) ->
@@ -89,13 +88,16 @@ unpack_frame(Data) ->
     {incomplete, Data}.
 
 %% @doc Start or continue continuation payload with length less than 126 bytes
-decode_frame(WSReq, Frame) when is_binary(Frame) ->
+decode_header(WSReq, Frame) when is_binary(Frame) ->
     case unpack_frame(Frame) of
-        {incomplete, Data} -> {recv, WSReq, Data};
+        {incomplete, Data} ->
+            {recv, WSReq, Data};
+
         {ok, 0, 0, OpCode, Len, Payload} ->
             WSReq1 = set_continuation_if_empty(WSReq, OpCode),
             WSReq2 = websocket_req:fin(0, WSReq1),
             decode_frame(WSReq2, OpCode, Len, Payload, <<>>);
+
         {ok, 1, 0, OpCode, Len, Payload} ->
             WSReq1 = websocket_req:fin(1, WSReq),
             decode_frame(WSReq1, OpCode, Len, Payload, <<>>)
@@ -149,7 +151,7 @@ decode_frame(WSReq, Opcode, Len, Data, Buffer) ->
             %% Append to previously existing continuation payloads and continue
             Continuation1 = << Continuation/binary, FullPayload/binary >>,
             WSReq1 = websocket_req:continuation(Continuation1, WSReq),
-            decode_frame(WSReq1, Rest);
+            decode_header(WSReq1, Rest);
         %% Terminate continuation frame sequence with non-control frame
         _ when Opcode < 8, Continuation =/= undefined, Fin == 1 ->
             DefragPayload = << Continuation/binary, FullPayload/binary >>,
