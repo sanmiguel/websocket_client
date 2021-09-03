@@ -119,7 +119,7 @@ unmask_frame(1, Len, << Mask:32, Rest/bits >>) ->
     | {close, Reason :: term(), websocket_req:req()}.
 %% @doc Length known and still missing data
 decode_frame(WSReq, Opcode, Len, Data, Buffer)
-  when byte_size(Data) < Len ->
+  when byte_size(Data) =< Len ->
     Remaining = Len - byte_size(Data),
     WSReq1 = websocket_req:remaining(Remaining, WSReq),
     WSReq2 = websocket_req:opcode(Opcode, WSReq1),
