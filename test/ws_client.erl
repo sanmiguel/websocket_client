@@ -11,6 +11,7 @@
          send_text/2,
          send_binary/2,
          send_ping/2,
+         send_close/1,
          sync_send_text/2,
          sync_send_binary/2,
          sync_send_ping/2,
@@ -63,6 +64,9 @@ send_binary(Pid, Msg) ->
 
 send_ping(Pid, Msg) ->
     websocket_client:cast(Pid, {ping, Msg}).
+
+send_close(Pid) ->
+    websocket_client:cast(Pid, close).
 
 sync_send_text(Pid, Msg) ->
     websocket_client:send(Pid, {text, Msg}).

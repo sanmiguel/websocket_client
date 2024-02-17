@@ -17,7 +17,8 @@
          test_keepalive_opt/1,
          test_keepalive_timeout/1,
          test_reconnect_after/1,
-         test_reply_from_handle/1
+         test_reply_from_handle/1,
+         test_closing_handshake_from_client/1
         ]).
 
 all() ->
@@ -30,7 +31,8 @@ all() ->
      test_keepalive_opt,
      test_keepalive_timeout,
      test_reconnect_after,
-     test_reply_from_handle
+     test_reply_from_handle,
+     test_closing_handshake_from_client
     ].
 
 init_per_suite(Config) ->
@@ -164,6 +166,17 @@ test_reply_from_handle(_) ->
     receive {ok, Pid} -> ok after 500 -> ct:fail(timeout) end,
     receive {done, Pid} -> ok after 1500 -> ct:fail(timeout) end,
     increment_client:stop(Pid),
+    ok.
+
+test_closing_handshake_from_client(_) ->
+    process_flag(trap_exit, true),
+    {ok, Pid} = ws_client:start_link(),
+    receive {ok, Pid} -> ok after 500 -> ct:fail(timeout) end,
+    ok = ws_client:send_close(Pid),
+    receive
+        {'EXIT', Pid, {remote, closed}} -> ok;
+        Other -> ct:fail({unexpected, Other})
+    end,
     ok.
 
 short_msg() ->
