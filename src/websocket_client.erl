@@ -217,7 +217,7 @@ init([Protocol, Host, Port, Path, Handler, HandlerArgs, Opts]) ->
      [ {next_event, internal, connect} || Connect ]}.
 
 -spec transport(ws | wss, {verify | verify_fun, term()},
-                list(inet:option())) -> #transport{}.
+                list(term())) -> #transport{}.
 transport(wss, SSLVerify, ExtraOpts) ->
     #transport{
        mod = ssl,
