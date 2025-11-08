@@ -23,11 +23,9 @@ start() ->
                                              {"/hello", ?MODULE, []},
                                              {'_', ?MODULE, []}
                                             ]}]),
-    {ok, _} = cowboy:start_clear(echo_listener, [
-                                                 {nodelay, true},
-                                                 {port, 8080},
-                                                 {max_connections, 100}
-                                                ],
+    {ok, _} = cowboy:start_clear(echo_listener,
+                                 #{socket_opts => [{nodelay, true}, {port, 8080}],
+                                   max_connections => 100},
                                  #{env => #{dispatch => Dispatch}}).
 
 stop() ->
