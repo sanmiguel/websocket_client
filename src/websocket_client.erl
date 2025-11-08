@@ -135,7 +135,7 @@ start_link(FsmName, URL, Handler, HandlerArgs, Opts) when is_list(Opts) ->
         #{scheme := Scheme, host := Host} = Parsed ->
             Port = maps:get(port, Parsed, default_scheme_port(Scheme)),
             FormattedPath = path(Parsed) ++ query_string(Parsed),
-            InitArgs = [scheme(Scheme), Host, Port, FormattedPath, Handler, HandlerArgs, Opts],
+            InitArgs = {scheme(Scheme), Host, Port, FormattedPath, Handler, HandlerArgs, Opts},
             % FsmOpts = [{debug, [log, trace]}],
             FsmOpts = [],
             fsm_start_link(FsmName, InitArgs, FsmOpts);
@@ -185,11 +185,25 @@ cast(Client, Frame) ->
 callback_mode() ->
     state_functions.
 
--spec init(list(any())) ->
+-type scheme() :: ws | wss.
+-type opt() :: {keepalive, keepalive()}
+		      | {extra_headers, list({string(), string()})}
+		      | {ssl_verify, verify_none | verify_peer | {verify_fun, term()}}
+		      | {socket_opts, list(term())}.
+-type init_args() ::
+	{Scheme :: scheme(),
+	 Host :: string(),
+	 Port :: integer(),
+	 Path :: string(),
+	 Handler :: atom(),
+	 HandlerArgs :: list(any()),
+	 Opts :: list(opt())}.
+
+-spec init(init_args()) ->
     {ok, state_name(), #context{}}
     | {ok, state_name(), #context{}, [{next_event, internal, connect}]}.
     %% NB DO NOT try to use Timeout to do keepalive.
-init([Protocol, Host, Port, Path, Handler, HandlerArgs, Opts]) ->
+init({Protocol, Host, Port, Path, Handler, HandlerArgs, Opts}) ->
     {Connect, Reconnect, HState} =
         case Handler:init(HandlerArgs) of
             {ok, State} -> {false, false, State};
