@@ -135,7 +135,7 @@ start_link(FsmName, URL, Handler, HandlerArgs, Opts) when is_list(Opts) ->
         #{scheme := Scheme, host := Host} = Parsed ->
             Port = maps:get(port, Parsed, default_scheme_port(Scheme)),
             FormattedPath = path(Parsed) ++ query_string(Parsed),
-            InitArgs = [list_to_atom(Scheme), Host, Port, FormattedPath, Handler, HandlerArgs, Opts],
+            InitArgs = [scheme(Scheme), Host, Port, FormattedPath, Handler, HandlerArgs, Opts],
             % FsmOpts = [{debug, [log, trace]}],
             FsmOpts = [],
             fsm_start_link(FsmName, InitArgs, FsmOpts);
@@ -157,6 +157,11 @@ query_string(#{query := Query}) ->
     "?" ++ Query;
 query_string(_) ->
     "".
+
+scheme("ws") ->
+    ws;
+scheme("wss") ->
+    wss.
 
 default_scheme_port("ws") ->
     80;
