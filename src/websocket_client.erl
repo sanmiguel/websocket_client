@@ -310,6 +310,11 @@ disconnect(Reason, #context{
             {stop, Reason1, Context#context{handler={Handler, HState1}}}
     end.
 
+disconnected(info, {TransClosed, _Sock},
+          #context{
+             transport=#transport{ closed=TransClosed } %% NB: matched
+            }=Context) ->
+    disconnect({remote, closed}, Context);
 disconnected(info, Msg, Context) ->
     handle_info(Msg, Context);
 disconnected(internal, connect, Context0) ->
