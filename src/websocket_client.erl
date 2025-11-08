@@ -453,7 +453,7 @@ handle_keepalive(KAState, #context{ wsreq=WSReq, ka_attempts=KAAttempts }=Contex
                 ok ->
                     NewTimer = erlang:send_after(KeepAlive, self(), keepalive),
                     WSReq1 = websocket_req:set([{keepalive_timer, NewTimer}], WSReq),
-                    {next_state, KAState, Context#context{wsreq=WSReq1, ka_attempts=(KAAttempts+1)}}%%;
+                    {next_state, KAState, Context#context{wsreq=WSReq1, ka_attempts=(KAAttempts+1)}};
                 {error, _} = Reason ->
                     disconnect(Reason, Context)
             end
